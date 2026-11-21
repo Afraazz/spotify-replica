@@ -356,3 +356,73 @@
     font-size: 9px;
   }
 }
+
+
+/* Track listing */
+.track-section {
+  margin-top: 35px;
+  padding-bottom: 30px;
+}
+
+.track-section h2 {
+  font-size: 24px;
+  margin-bottom: 8px;
+}
+
+.track-section > p {
+  color: #b3b3b3;
+  font-size: 14px;
+  margin-bottom: 25px;
+}
+
+.track-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.track-row {
+  display: grid;
+  grid-template-columns: 35px minmax(150px, 2fr) minmax(100px, 1fr) 55px;
+  align-items: center;
+  gap: 15px;
+  padding: 12px 15px;
+  border-radius: 5px;
+  transition: background 0.2s;
+}
+
+.track-row:hover {
+  background: #282828;
+}
+
+.track-number {
+  color: #b3b3b3;
+  font-size: 14px;
+}
+
+.track-details h4 {
+  font-size: 14px;
+  font-weight: 500;
+  margin-bottom: 5px;
+}
+
+.track-details p,
+.track-album,
+.track-duration {
+  color: #b3b3b3;
+  font-size: 13px;
+}
+
+.track-duration {
+  text-align: right;
+}
+
+@media (max-width: 600px) {
+  .track-row {
+    grid-template-columns: 25px minmax(0, 1fr) 45px;
+    gap: 10px;
+  }
+
+  .track-album {
+    display: none;
+  }
+}

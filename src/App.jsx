@@ -1,5 +1,8 @@
 
 import './App.css';
+import { useState } from 'react';
+import { playlists } from './data';
+import TrackList from './TrackList';
 
 import {
   Home,
@@ -61,48 +64,19 @@ function TopBar() {
       </div>
 
       <div className="user-actions">
-        <button className="upgrade-btn">
-          Explore Premium
-        </button>
-
-        <button className="profile-btn">
-          A
-        </button>
+        <button className="upgrade-btn">Explore Premium</button>
+        <button className="profile-btn">A</button>
       </div>
     </header>
   );
 }
 
-// Playlist data
-const playlists = [
-  {
-    id: 1,
-    title: 'Daily Mix',
-    description: 'Your favourite music, mixed daily.',
-    color: '#5b3c88'
-  },
-  {
-    id: 2,
-    title: 'Chill Vibes',
-    description: 'Relax and enjoy your day.',
-    color: '#315b55'
-  },
-  {
-    id: 3,
-    title: 'Top Hits',
-    description: 'Popular tracks you might enjoy.',
-    color: '#934b35'
-  },
-  {
-    id: 4,
-    title: 'Focus Music',
-    description: 'Music to help you concentrate.',
-    color: '#345b83'
-  }
-];
-
 // Playlist section
+
+
 function PlaylistSection() {
+  const [selectedPlaylist, setSelectedPlaylist] = useState(null);
+
   return (
     <section className="playlist-section">
       <h1>Good afternoon</h1>
@@ -112,19 +86,29 @@ function PlaylistSection() {
           <div
             className="playlist-card"
             key={playlist.id}
-            style={{
-              backgroundColor: playlist.color
-            }}
+            onClick={() => setSelectedPlaylist(playlist)}
+            style={{ cursor: 'pointer' }}
           >
             <h3>{playlist.title}</h3>
             <p>{playlist.description}</p>
           </div>
         ))}
       </div>
+
+      {selectedPlaylist && (
+        <div className="track-section">
+          <h2>{selectedPlaylist.title}</h2>
+          <p>{selectedPlaylist.description}</p>
+
+          <TrackList tracks={selectedPlaylist.tracks} />
+        </div>
+      )}
     </section>
   );
 }
 
+
+// Music player
 function PlayerBar() {
   return (
     <footer className="player-bar">
@@ -164,7 +148,6 @@ function PlayerBar() {
     </footer>
   );
 }
-
 
 // Main application
 function App() {
