@@ -426,3 +426,21 @@
     display: none;
   }
 }
+
+/* Audio playback slider */
+.progress-slider {
+  flex: 1;
+  height: 4px;
+  cursor: pointer;
+  accent-color: #1db954;
+  outline: none;
+}
+
+.progress-slider:hover {
+  accent-color: #1ed760;
+}
+
+.progress-slider:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}

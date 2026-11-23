@@ -1,9 +1,14 @@
 
-function TrackList({ tracks }) {
+function TrackList({ tracks, onTrackSelect }) {
   return (
     <div className="track-list">
       {tracks.map((track, index) => (
-        <div className="track-row" key={track.id}>
+        <div
+          className="track-row"
+          key={track.id}
+          onClick={() => onTrackSelect(track)}
+          style={{ cursor: 'pointer' }}
+        >
           <span className="track-number">{index + 1}</span>
 
           <div className="track-details">

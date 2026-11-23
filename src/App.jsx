@@ -1,6 +1,6 @@
 
 import './App.css';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { playlists } from './data';
 import TrackList from './TrackList';
 
@@ -13,7 +13,8 @@ import {
   SkipBack,
   Play,
   SkipForward,
-  Volume2
+  Volume2,
+  Pause
 } from 'lucide-react';
 
 // Sidebar navigation
@@ -72,11 +73,11 @@ function TopBar() {
 }
 
 // Playlist section
-
-
-function PlaylistSection() {
-  const [selectedPlaylist, setSelectedPlaylist] = useState(null);
-
+function PlaylistSection({
+  selectedPlaylist,
+  onSelectPlaylist,
+  onSelectTrack
+}) {
   return (
     <section className="playlist-section">
       <h1>Good afternoon</h1>
@@ -86,7 +87,7 @@ function PlaylistSection() {
           <div
             className="playlist-card"
             key={playlist.id}
-            onClick={() => setSelectedPlaylist(playlist)}
+            onClick={() => onSelectPlaylist(playlist)}
             style={{ cursor: 'pointer' }}
           >
             <h3>{playlist.title}</h3>
@@ -100,45 +101,82 @@ function PlaylistSection() {
           <h2>{selectedPlaylist.title}</h2>
           <p>{selectedPlaylist.description}</p>
 
-          <TrackList tracks={selectedPlaylist.tracks} />
+          <TrackList
+            tracks={selectedPlaylist.tracks}
+            onTrackSelect={onSelectTrack}
+          />
         </div>
       )}
     </section>
   );
 }
 
-
 // Music player
-function PlayerBar() {
+function PlayerBar({
+  currentTrack,
+  isPlaying,
+  onPlayPause,
+  onNextTrack,
+  onPreviousTrack,
+  currentTime,
+  duration,
+  onSeek
+}) {
+  const formatTime = (time) => {
+    if (!Number.isFinite(time)) return '0:00';
+
+    const minutes = Math.floor(time / 60);
+    const seconds = Math.floor(time % 60)
+      .toString()
+      .padStart(2, '0');
+
+    return `${minutes}:${seconds}`;
+  };
   return (
     <footer className="player-bar">
       <div className="track-info">
         <div className="track-cover">♫</div>
 
         <div>
-          <h4>Sample Track</h4>
-          <p>Unknown Artist</p>
-        </div>
+  <h4>{currentTrack ? currentTrack.title : 'No track selected'}</h4>
+  <p>{currentTrack ? currentTrack.artist : 'Unknown Artist'}</p>
+</div>
       </div>
 
       <div className="player-controls">
         <div className="control-buttons">
-          <button><SkipBack size={20} /></button>
+          <button onClick={onPreviousTrack}>
+  <SkipBack size={20} />
+</button>
 
-          <button className="play-button">
-            <Play size={20} fill="black" />
-          </button>
+<button className="play-button" onClick={onPlayPause}>
+  {isPlaying ? (
+    <Pause size={20} fill="black" />
+  ) : (
+    <Play size={20} fill="black" />
+  )}
+</button>
 
-          <button><SkipForward size={20} /></button>
+<button onClick={onNextTrack}>
+  <SkipForward size={20} />
+</button>
         </div>
 
         <div className="progress-container">
-          <span>0:00</span>
-          <div className="progress-track">
-            <div className="progress-fill"></div>
-          </div>
-          <span>3:30</span>
-        </div>
+  <span>{formatTime(currentTime)}</span>
+
+  <input
+    type="range"
+    className="progress-slider"
+    min="0"
+    max={duration || 0}
+    value={currentTime}
+    onChange={onSeek}
+    disabled={!duration}
+  />
+
+  <span>{formatTime(duration)}</span>
+</div>
       </div>
 
       <div className="volume-control">
@@ -151,16 +189,120 @@ function PlayerBar() {
 
 // Main application
 function App() {
+  const audioRef = useRef(null);
+
+  const [selectedPlaylist, setSelectedPlaylist] = useState(null);
+  const [currentTrack, setCurrentTrack] = useState(null);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [currentTime, setCurrentTime] = useState(0);
+  const [duration, setDuration] = useState(0);
+
+  // Select and play a track
+  const handleTrackSelect = (track) => {
+    setCurrentTrack(track);
+    setCurrentTime(0);
+
+    if (audioRef.current) {
+      audioRef.current.src = track.audio;
+
+      audioRef.current.play()
+        .then(() => setIsPlaying(true))
+        .catch((error) => {
+          console.error('Unable to play audio:', error);
+          setIsPlaying(false);
+        });
+    }
+  };
+
+  // Play and pause audio
+  const handlePlayPause = () => {
+    if (!audioRef.current || !currentTrack) return;
+
+    if (audioRef.current.paused) {
+      audioRef.current.play()
+        .then(() => setIsPlaying(true))
+        .catch((error) => {
+          console.error('Unable to play audio:', error);
+        });
+    } else {
+      audioRef.current.pause();
+      setIsPlaying(false);
+    }
+  };
+
+    const handleNextTrack = () => {
+    if (!selectedPlaylist || !currentTrack) return;
+
+    const tracks = selectedPlaylist.tracks;
+    const currentIndex = tracks.findIndex(
+      (track) => track.id === currentTrack.id
+    );
+
+    const nextIndex = (currentIndex + 1) % tracks.length;
+
+    handleTrackSelect(tracks[nextIndex]);
+  };
+
+    const handlePreviousTrack = () => {
+    if (!selectedPlaylist || !currentTrack) return;
+
+    const tracks = selectedPlaylist.tracks;
+    const currentIndex = tracks.findIndex(
+      (track) => track.id === currentTrack.id
+    );
+
+    const previousIndex =
+      currentIndex === 0 ? tracks.length - 1 : currentIndex - 1;
+
+    handleTrackSelect(tracks[previousIndex]);
+  };
+
+  const handleSeek = (event) => {
+  const newTime = Number(event.target.value);
+
+  if (audioRef.current) {
+    audioRef.current.currentTime = newTime;
+    setCurrentTime(newTime);
+  }
+};
+
   return (
     <div className="app">
+      <audio
+        ref={audioRef}
+        onTimeUpdate={() => {
+          setCurrentTime(audioRef.current.currentTime);
+        }}
+        onLoadedMetadata={() => {
+          setDuration(audioRef.current.duration);
+        }}
+        onEnded={() => {
+          setIsPlaying(false);
+        }}
+      />
+
       <Sidebar />
 
       <main className="main-content">
         <TopBar />
-        <PlaylistSection />
+
+        <PlaylistSection
+          selectedPlaylist={selectedPlaylist}
+          onSelectPlaylist={setSelectedPlaylist}
+          onSelectTrack={handleTrackSelect}
+        />
       </main>
 
-      <PlayerBar />
+  <PlayerBar
+  currentTrack={currentTrack}
+  isPlaying={isPlaying}
+  onPlayPause={handlePlayPause}
+  onNextTrack={handleNextTrack}
+  onPreviousTrack={handlePreviousTrack}
+  currentTime={currentTime}
+  duration={duration}
+  onSeek={handleSeek}
+/>
     </div>
   );
 }
