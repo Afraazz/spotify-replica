@@ -3,6 +3,7 @@ import './App.css';
 import { useRef, useState } from 'react';
 import { playlists } from './data';
 import TrackList from './TrackList';
+import { usePlayer } from './context/PlayerContext.jsx';
 
 import {
   Home,
@@ -18,23 +19,45 @@ import {
 } from 'lucide-react';
 
 // Sidebar navigation
-function Sidebar() {
+
+function Sidebar({ activeView, onViewChange }) {
   return (
     <aside className="sidebar">
       <h2 className="logo">♫ Spotify</h2>
 
       <nav className="main-nav">
-        <a href="#" className="active">
+        <a
+          href="#"
+          className={activeView === 'home' ? 'active' : ''}
+          onClick={(event) => {
+            event.preventDefault();
+            onViewChange('home');
+          }}
+        >
           <Home size={22} />
           <span>Home</span>
         </a>
 
-        <a href="#">
+        <a
+          href="#"
+          className={activeView === 'search' ? 'active' : ''}
+          onClick={(event) => {
+            event.preventDefault();
+            onViewChange('search');
+          }}
+        >
           <Search size={22} />
           <span>Search</span>
         </a>
 
-        <a href="#">
+        <a
+          href="#"
+          className={activeView === 'library' ? 'active' : ''}
+          onClick={(event) => {
+            event.preventDefault();
+            onViewChange('library');
+          }}
+        >
           <Library size={22} />
           <span>Your Library</span>
         </a>
@@ -55,6 +78,7 @@ function Sidebar() {
   );
 }
 
+
 // Top navigation
 function TopBar() {
   return (
@@ -73,48 +97,121 @@ function TopBar() {
 }
 
 // Playlist section
+
+
 function PlaylistSection({
   selectedPlaylist,
   onSelectPlaylist,
-  onSelectTrack
+  onSelectTrack,
+  activeView,
+  onViewChange
 }) {
+  const [searchTerm, setSearchTerm] = useState('');
+
+  const allTracks = playlists.flatMap((playlist) => playlist.tracks);
+
+  const filteredTracks = allTracks.filter((track) =>
+    `${track.title} ${track.artist}`
+      .toLowerCase()
+      .includes(searchTerm.toLowerCase())
+  );
+
   return (
     <section className="playlist-section">
-      <h1>Good afternoon</h1>
 
-      <div className="playlist-grid">
-        {playlists.map((playlist) => (
-          <div
-            className="playlist-card"
-            key={playlist.id}
-            onClick={() => onSelectPlaylist(playlist)}
-            style={{ cursor: 'pointer' }}
-          >
-            <h3>{playlist.title}</h3>
-            <p>{playlist.description}</p>
+      {activeView === 'home' && (
+        <>
+          <h1>Good afternoon</h1>
+
+          <div className="playlist-grid">
+            {playlists.map((playlist) => (
+              <div
+                className="playlist-card"
+                key={playlist.id}
+                onClick={() => onSelectPlaylist(playlist)}
+                style={{ cursor: 'pointer' }}
+              >
+                <h3>{playlist.title}</h3>
+                <p>{playlist.description}</p>
+              </div>
+            ))}
           </div>
-        ))}
-      </div>
 
-      {selectedPlaylist && (
+          {selectedPlaylist && (
+            <div className="track-section">
+              <h2>{selectedPlaylist.title}</h2>
+              <p>{selectedPlaylist.description}</p>
+
+              <TrackList
+                tracks={selectedPlaylist.tracks}
+                onTrackSelect={onSelectTrack}
+              />
+            </div>
+          )}
+        </>
+      )}
+
+      {activeView === 'search' && (
         <div className="track-section">
-          <h2>{selectedPlaylist.title}</h2>
-          <p>{selectedPlaylist.description}</p>
+          <h1>Search</h1>
 
-          <TrackList
-            tracks={selectedPlaylist.tracks}
-            onTrackSelect={onSelectTrack}
+          <input
+            type="search"
+            placeholder="Search all tracks or artists..."
+            value={searchTerm}
+            onChange={(event) => setSearchTerm(event.target.value)}
+            className="track-search"
           />
+
+          {searchTerm.trim() && (
+            <>
+              <h2>Search Results</h2>
+
+              {filteredTracks.length > 0 ? (
+                <TrackList
+                  tracks={filteredTracks}
+                  onTrackSelect={onSelectTrack}
+                />
+              ) : (
+                <p>No matching tracks found.</p>
+              )}
+            </>
+          )}
         </div>
       )}
+
+      {activeView === 'library' && (
+        <div className="track-section">
+          <h1>Your Library</h1>
+          <p>Your playlists</p>
+
+          <div className="playlist-grid">
+            {playlists.map((playlist) => (
+              <div
+                className="playlist-card"
+                key={playlist.id}
+                onClick={() => {
+                  onSelectPlaylist(playlist);
+                  onViewChange('home');
+                }}
+                style={{ cursor: 'pointer' }}
+              >
+                <h3>{playlist.title}</h3>
+                <p>{playlist.description}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
     </section>
   );
 }
 
+
+
 // Music player
 function PlayerBar({
-  currentTrack,
-  isPlaying,
   onPlayPause,
   onNextTrack,
   onPreviousTrack,
@@ -122,6 +219,7 @@ function PlayerBar({
   duration,
   onSeek
 }) {
+  const { currentTrack, isPlaying } = usePlayer();
   const formatTime = (time) => {
     if (!Number.isFinite(time)) return '0:00';
 
@@ -191,11 +289,16 @@ function PlayerBar({
 function App() {
   const audioRef = useRef(null);
 
-  const [selectedPlaylist, setSelectedPlaylist] = useState(null);
-  const [currentTrack, setCurrentTrack] = useState(null);
-  const [isPlaying, setIsPlaying] = useState(false);
-  const [currentTime, setCurrentTime] = useState(0);
-  const [duration, setDuration] = useState(0);
+const [selectedPlaylist, setSelectedPlaylist] = useState(null);
+const [activeView, setActiveView] = useState('home');
+const [currentTime, setCurrentTime] = useState(0);
+const [duration, setDuration] = useState(0);
+
+const {
+  currentTrack,
+  setCurrentTrack,
+  setIsPlaying
+} = usePlayer();
 
   // Select and play a track
   const handleTrackSelect = (track) => {
@@ -281,21 +384,24 @@ function App() {
         }}
       />
 
-      <Sidebar />
+      <Sidebar
+  activeView={activeView}
+  onViewChange={setActiveView}
+/>
 
       <main className="main-content">
         <TopBar />
 
-        <PlaylistSection
-          selectedPlaylist={selectedPlaylist}
-          onSelectPlaylist={setSelectedPlaylist}
-          onSelectTrack={handleTrackSelect}
-        />
+<PlaylistSection
+  selectedPlaylist={selectedPlaylist}
+  onSelectPlaylist={setSelectedPlaylist}
+  onSelectTrack={handleTrackSelect}
+  activeView={activeView}
+  onViewChange={setActiveView}
+/>
       </main>
 
-  <PlayerBar
-  currentTrack={currentTrack}
-  isPlaying={isPlaying}
+<PlayerBar
   onPlayPause={handlePlayPause}
   onNextTrack={handleNextTrack}
   onPreviousTrack={handlePreviousTrack}
