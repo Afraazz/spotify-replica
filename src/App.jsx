@@ -302,7 +302,15 @@ const {
 
   // Select and play a track
   const handleTrackSelect = (track) => {
-    setCurrentTrack(track);
+  const matchingPlaylist = playlists.find((playlist) =>
+    playlist.tracks.some((item) => item.id === track.id)
+  );
+
+  if (matchingPlaylist) {
+    setSelectedPlaylist(matchingPlaylist);
+  }
+
+  setCurrentTrack(track);
     setCurrentTime(0);
 
     if (audioRef.current) {
